@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+
+    <style>
+      * {
+        box-sizing: border-box;
+        user-select: none;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #dbeafe, #f5d0fe);
+        font-family: "Microsoft YaHei", sans-serif;
+      }
+
+      #app {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      #board-wrap {
+        display: grid;
+        gap: 5px;
+        margin: 20px auto;
+      }
+
+      .panel {
+        width: 320px;
+        padding: 22px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(14px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+      }
+
+      .tile {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        background: linear-gradient(
+          145deg,
+          rgb(196, 196, 255),
+          rgb(150, 150, 255)
+        );
+
+        box-shadow:
+          0 4px 10px rgba(0, 0, 0, 0.12),
+          inset 0 2px 3px rgba(255, 255, 255, 0.5);
+
+        text-align: center;
+        line-height: 50px;
+        font-size: 22px;
+        font-weight: bold;
+        cursor: pointer;
+        transition:
+          transform 0.12s,
+          background 0.2s,
+          box-shadow 0.2s;
+      }
+
+      .tile:hover {
+        transform: scale(1.08);
+
+        background: linear-gradient(
+          145deg,
+          rgb(139, 92, 246),
+          rgb(109, 58, 250)
+        );
+
+        box-shadow:
+          0 6px 16px rgba(109, 58, 250, 0.4),
+          inset 0 2px 3px rgba(255, 255, 255, 0.35);
+
+        color: white;
+      }
+
+      .panel div {
+        margin-bottom: 18px;
+      }
+
+      .panel span {
+        display: inline-block;
+        width: 100px;
+        color: #444;
+        font-weight: bold;
+      }
+
+      input {
+        width: 120px;
+        height: 40px;
+        border: none;
+        outline: none;
+        border-radius: 12px;
+        padding: 0 12px;
+        font-size: 16px;
+        background-color: #f3f4f6;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08);
+      }
+
+      .btn {
+        width: 120px;
+        height: 48px;
+        margin-right: 10px;
+        border: none;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #8b5cf6, #6366f1);
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition:
+          transform 0.15s,
+          opacity 0.2s,
+          box-shadow 0.2s;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        opacity: 0.95;
+        box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35);
+      }
+
+      .btn:active {
+        transform: scale(0.96);
+      }
+
+      [v-cloak] {
+        display: none;
+      }
+    </style>
+
+    <script src="./vue.js"></script>
+  </head>
+
+  <body onselectstart="return false;" ondragstart="return false;">
+    <div id="app" v-cloak>
+      <div id="board-wrap">
+        <div v-for="(row,r) in bo" v-show="!isTip">
+          <div
+            v-for="(e,c) in row"
+            class="tile"
+            :style="e.style"
+            @click="hit(e)"
+            @contextmenu.prevent="flag(e)"
+          >
+            {{e.tag}}
+          </div>
+        </div>
+
+        <div v-for="(row,r) in bo" v-show="isTip">
+          <div
+            v-for="(e,c) in row"
+            class="tile"
+            :style="e.style"
+            @click="hit(e)"
+          >
+            {{e.val}}
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div>
+          <span>边长</span>
+          <input type="text" v-model="size" />
+        </div>
+        <div>
+          <span>地雷数目</span>
+          <input type="text" v-model="mines" />
+        </div>
+        <div>已扫出{{find}}块空地，还差{{total-find-mines}}块空地</div>
+        <div>
+          <button @click="isTip=!isTip" class="btn">提示</button>
+          <button @click="start()" class="btn">重来</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const EMPTY = "·";
+
+      const getTile = function (r, c, v) {
+        return {
+          r,
+          c,
+          val: v,
+          posStyle: "left: " + c * 55 + "px;top: " + r * 55 + "px;",
+          style: "left: " + c * 55 + "px;top: " + r * 55 + "px;",
+          tag: "",
+        };
+      };
+
+      function getBo(size, mines) {
+        let bo = [];
+        for (let r = 0; r < size; r++) {
+          t = [];
+          for (let c = 0; c < size; c++) {
+            t[c] = getTile(r, c, EMPTY);
+          }
+          bo[r] = t;
+        }
+
+        let cnt = 0;
+        let i;
+        let j;
+        let total = size * size;
+
+        while (cnt < mines && cnt < total) {
+          i = Math.floor(Math.random() * size);
+          j = Math.floor(Math.random() * size);
+          if (bo[i][j].val != "💣") {
+            bo[i][j].val = "💣";
+            cnt += 1;
+          }
+        }
+
+        return bo;
+      }
+
+      let app = new Vue({
+        el: "#app",
+        data: {
+          dirs: [
+            [-1, -1],
+            [-1, 0],
+            [-1, 1],
+            [0, -1],
+            [0, 1],
+            [1, -1],
+            [1, 0],
+            [1, 1],
+          ],
+          size: 8,
+          mines: 10,
+          bo: [],
+          sightColor: "rgb(245, 232, 215)",
+          find: 0,
+          isTip: false,
+          total: 0,
+        },
+        methods: {
+          hit: function (e) {
+            if (e.val == "💣") {
+              e.val = "🔥";
+              e.tag = "🔥";
+              let t = confirm("碰到了地雷游戏结束！");
+              if (t) this.start();
+            } else if (e.val == EMPTY) {
+              let cnt = 0;
+              let r = e.r;
+              let c = e.c;
+              this.checkWin();
+
+              for (let k = 0; k < this.dirs.length; k++) {
+                var dir = this.dirs[k];
+                var tr = r + dir[0];
+                var tc = c + dir[1];
+
+                if (
+                  0 <= tr &&
+                  tr < this.bo.length &&
+                  0 <= tc &&
+                  tc < this.bo[0].length
+                ) {
+                  if (this.bo[tr][tc].val == "💣") {
+                    cnt += 1;
+                  }
+                }
+              }
+
+              if (cnt == 0) {
+                e.val = "";
+                for (let k = 0; k < this.dirs.length; k++) {
+                  var dir = this.dirs[k];
+                  var tr = r + dir[0];
+                  var tc = c + dir[1];
+                  if (
+                    0 <= tr &&
+                    tr < this.bo.length &&
+                    0 <= tc &&
+                    tc < this.bo[0].length
+                  ) {
+                    if (this.bo[tr][tc].val == EMPTY) {
+                      this.hit(this.bo[tr][tc]);
+                    }
+                  }
+                }
+              } else {
+                e.val = String(cnt);
+                e.tag = String(cnt);
+              }
+            }
+          },
+
+          start: function () {
+            this.total = this.size * this.size;
+            this.bo = getBo(this.size, this.mines);
+            this.maxFind = this.size * this.size - this.mines;
+            this.find = 0;
+            const wrap = document.querySelector("#board-wrap");
+            wrap.style.gridTemplateColumns = "repeat(" + this.size + ", 50px)";
+          },
+
+          checkWin: function () {
+            this.find += 1;
+            if (this.find >= this.maxFind) {
+              let t = confirm("胜利！");
+              if (t) this.start();
+            }
+          },
+
+          flag: function (e) {
+            if (e.val == EMPTY || e.val == "💣") {
+              e.tag = e.tag ? "" : "🚩";
+            }
+          },
+        },
+      });
+
+      app.start();
+    </script>
+  </body>
+</html>
