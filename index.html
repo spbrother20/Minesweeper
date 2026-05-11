@@ -24,7 +24,7 @@
         align-items: center;
       }
 
-      .board-wrap {
+      #board-wrap {
         display: grid;
         gap: 5px;
         margin: 20px auto;
@@ -141,10 +141,7 @@
 
   <body onselectstart="return false;" ondragstart="return false;">
     <div id="app" v-cloak>
-      <div
-        class="board-wrap"
-        :style="{ gridTemplateColumns: 'repeat(' + size + ', 50px)' }"
-      >
+      <div id="board-wrap">
         <div v-for="(row,r) in bo" v-show="!isTip">
           <div
             v-for="(e,c) in row"
@@ -172,13 +169,13 @@
       <div class="panel">
         <div>
           <span>边长</span>
-          <input type="text" value="10" id="size" />
+          <input type="text" v-model="size" />
         </div>
         <div>
           <span>地雷数目</span>
-          <input type="text" value="15" id="mines" />
+          <input type="text" v-model="mines" />
         </div>
-        <div>已得到空地{{find}}，还差{{total-find-mines}}</div>
+        <div>已扫出{{find}}块空地，还差{{total-find-mines}}块空地</div>
         <div>
           <button @click="isTip=!isTip" class="btn">提示</button>
           <button @click="start()" class="btn">重来</button>
@@ -188,7 +185,8 @@
 
     <script>
       const EMPTY = "·";
-      let Tile = function (r, c, v) {
+
+      const getTile = function (r, c, v) {
         return {
           r,
           c,
@@ -204,7 +202,7 @@
         for (let r = 0; r < size; r++) {
           t = [];
           for (let c = 0; c < size; c++) {
-            t[c] = Tile(r, c, EMPTY);
+            t[c] = getTile(r, c, EMPTY);
           }
           bo[r] = t;
         }
@@ -239,8 +237,8 @@
             [1, 0],
             [1, 1],
           ],
-          size: 10,
-          mines: 6,
+          size: 8,
+          mines: 10,
           bo: [],
           sightColor: "rgb(245, 232, 215)",
           find: 0,
@@ -258,7 +256,6 @@
               let cnt = 0;
               let r = e.r;
               let c = e.c;
-
               this.checkWin();
 
               for (let k = 0; k < this.dirs.length; k++) {
@@ -303,12 +300,12 @@
           },
 
           start: function () {
-            this.size = parseInt(document.querySelector("#size").value);
-            this.mines = parseInt(document.querySelector("#mines").value);
             this.total = this.size * this.size;
             this.bo = getBo(this.size, this.mines);
             this.maxFind = this.size * this.size - this.mines;
             this.find = 0;
+            const wrap = document.querySelector("#board-wrap");
+            wrap.style.gridTemplateColumns = "repeat(" + this.size + ", 50px)";
           },
 
           checkWin: function () {
