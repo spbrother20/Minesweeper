@@ -2,8 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>扫雷游戏🎮</title>
+    <meta name="viewport" />
+    <title>扫雷游戏</title>
 
     <style>
       * {
@@ -14,8 +14,23 @@
       body {
         margin: 0;
         min-height: 100vh;
-        background: linear-gradient(135deg, #dbeafe, #f5d0fe);
         font-family: "Microsoft YaHei", sans-serif;
+      }
+      .mine-mode {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #dbeafe, #60a5fa); /* 蓝色系 */
+        transition: background 0.4s ease;
+      }
+
+      .flag-mode {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #fce7f3, #f9a8d4); /* 粉色系 */
+        transition: background 0.4s ease;
+      }
+
+      .mine-mode,
+      .flag-mode {
+        transition: background 0.5s ease-in-out;
       }
 
       #app {
@@ -31,13 +46,15 @@
       }
 
       .panel {
-        width: 320px;
+        text-align: center;
+        width: 500px;
         padding: 22px;
         border-radius: 24px;
         background: rgba(255, 255, 255, 0.75);
         backdrop-filter: blur(14px);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
         border: 1px solid rgba(255, 255, 255, 0.4);
+        justify-items: center;
       }
 
       .tile {
@@ -143,14 +160,71 @@
       [v-cloak] {
         display: none;
       }
+
+      .mode-decor {
+        margin-top: 10px;
+        margin-bottom: 10px;
+      }
     </style>
 
     <script src="./vue.js"></script>
   </head>
 
   <body onselectstart="return false;" ondragstart="return false;">
-    <div id="app" v-cloak>
-      <div class="panel" style="font-size: 2em">扫雷游戏💣</div>
+    <div id="app" v-cloak :class="isFlag?'flag-mode':'mine-mode'">
+      <div class="panel">
+        <div style="font-size: 2em">扫雷游戏</div>
+        <div v-show="stop">
+          <div style="color: red; font-size: 2em">
+            {{find==total-mines?'游戏胜利🎉':'游戏失败💥'}}
+          </div>
+          <div>共有{{mines}}颗地雷</div>
+          <div>共有{{total-mines}}块空地，已清理出{{find}}块</div>
+          <div>
+            <button @touchstart.prevent="start()" @click="start()">
+              重新开始
+            </button>
+          </div>
+          <div>
+            <span>边长</span>
+            <input type="number" id="size" value="5" />
+          </div>
+          <div>
+            <span>地雷总数</span>
+            <input type="number" id="mines" value="3" />
+          </div>
+        </div>
+
+        <div v-show="!stop">
+          <div style="color: green; font-size: 2em">游戏中🎮</div>
+          <div>共有{{mines}}颗地雷</div>
+          <div>共有{{total-mines}}块空地，已清理出{{find}}块</div>
+          <div>
+            <button @touchstart.prevent="stop='true'" @click="stop='true'">
+              新的一局
+            </button>
+          </div>
+          <div>
+            <button
+              @touchstart.prevent="isTip = !isTip"
+              @click="isTip = !isTip"
+            >
+              当前模式：{{isTip?'作弊':'经典'}}
+            </button>
+          </div>
+          <div>
+            <button
+              @touchstart.prevent="isFlag = !isFlag"
+              @click="isFlag = !isFlag"
+            >
+              当前点击动作：{{isFlag ? '🚩 插旗' : '🔍 扫雷'}}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="mode-decor">
+        <span v-for="i in 24">{{ isFlag ? '🚩' : '🔍' }}</span>
+      </div>
       <div
         id="board-wrap"
         :style="isFlag?'cursor: crosshair':'cursor: pointer'"
@@ -161,51 +235,14 @@
             :class="['tile', e.opened ? 'tile-opened' : '',isTip&&e.val=='💣' ? 'tile-tip' : '']"
             :style="e.style"
             @click="hit(e)"
+            @touchstart.prevent="hit(e)"
           >
             <span :style="{ color: getNumColor(e.tag) }"> {{e.tag}} </span>
           </div>
         </div>
       </div>
-
-      <div class="panel">
-        <div v-show="stop">
-          <div style="color: red; font-size: 2em">
-            {{find==total-mines?'游戏胜利🎉':'游戏失败💥'}}
-          </div>
-          <div>共有{{mines}}颗地雷</div>
-          <div>共有{{total-mines}}块空地，已清理出{{find}}块</div>
-          <div>
-            <span>边长</span>
-            <input type="number" id="size" value="5" />
-          </div>
-          <div>
-            <span>地雷总数</span>
-            <input type="number" id="mines" value="3" />
-          </div>
-          <div>
-            <button @click="start()">重新开始</button>
-          </div>
-        </div>
-
-        <div v-show="!stop">
-          <div style="color: green; font-size: 2em">游戏中🎮</div>
-          <div>共有{{mines}}颗地雷</div>
-          <div>共有{{total-mines}}块空地，已清理出{{find}}块</div>
-          <div>
-            <button @click="isTip = !isTip">
-              当前模式：{{isTip?'作弊':'经典'}}
-            </button>
-          </div>
-          <div>
-            <button @click="isFlag = !isFlag">
-              当前点击动作：{{isFlag?'插旗':'扫雷'}}
-            </button>
-          </div>
-
-          <div>
-            <button @click="stop='true'">新的一局</button>
-          </div>
-        </div>
+      <div class="mode-decor">
+        <span v-for="i in 24">{{ isFlag ? '🚩' : '🔍' }}</span>
       </div>
     </div>
 
