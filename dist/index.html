@@ -43,6 +43,7 @@
         display: grid;
         gap: 5px;
         margin: 20px auto;
+        cursor: pointer;
       }
 
       .panel {
@@ -182,7 +183,7 @@
           <div>共有{{total-mines}}块空地，已清理出{{find}}块</div>
           <div>
             <button @touchstart.prevent="start()" @click="start()">
-              重新开始
+              新的一局
             </button>
           </div>
           <div>
@@ -201,7 +202,7 @@
           <div>共有{{total-mines}}块空地，已清理出{{find}}块</div>
           <div>
             <button @touchstart.prevent="stop='true'" @click="stop='true'">
-              新的一局
+              放弃本局
             </button>
           </div>
           <div>
@@ -225,11 +226,8 @@
       <div class="mode-decor">
         <span v-for="i in 24">{{ isFlag ? '🚩' : '🔍' }}</span>
       </div>
-      <div
-        id="board-wrap"
-        :style="isFlag?'cursor: crosshair':'cursor: pointer'"
-      >
-        <div v-for="(row,r) in bo">
+      <div id="board-wrap" touchstart.prevent>
+        <div v-for="(row,r) in bo" touchstart.prevent>
           <div
             v-for="(e,c) in row"
             :class="['tile', e.opened ? 'tile-opened' : '',isTip&&e.val=='💣' ? 'tile-tip' : '']"
@@ -324,7 +322,6 @@
             return map[tag] || "#000";
           },
           hit: function (e) {
-            console.log(e);
             if (this.stop) return;
             if (e.opened) return;
             if (this.isFlag) {
@@ -388,9 +385,16 @@
             this.stop = false;
             this.isFlag = false;
             this.isTip = false;
-            this.size = Number(document.querySelector("#size").value);
-            this.mines = Number(document.querySelector("#mines").value);
+            this.size = Math.max(
+              Number(document.querySelector("#size").value),
+              1,
+            );
+
             this.total = this.size * this.size;
+            this.mines = Math.min(
+              Number(document.querySelector("#mines").value),
+              this.total,
+            );
             this.find = 0;
             this.bo = getBo(this.size, this.mines);
             document.querySelector("#board-wrap").style.gridTemplateColumns =
