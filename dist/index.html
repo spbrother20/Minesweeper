@@ -162,7 +162,7 @@
             :style="e.style"
             @click="hit(e)"
           >
-            {{e.tag}}
+            <span :style="{ color: getNumColor(e.tag) }"> {{e.tag}} </span>
           </div>
         </div>
       </div>
@@ -273,6 +273,19 @@
         },
 
         methods: {
+          getNumColor: (tag) => {
+            const map = {
+              1: "#22c55e", // 绿
+              2: "#4ade80", // 浅绿
+              3: "#22d3ee", // 青蓝
+              4: "#3b82f6", // 蓝
+              5: "#eab308", // 黄
+              6: "#f59e0b", // 深黄/橙
+              7: "#f97316", // 橙红
+              8: "#ef4444", // 红
+            };
+            return map[tag] || "#000";
+          },
           hit: function (e) {
             console.log(e);
             if (this.stop) return;
