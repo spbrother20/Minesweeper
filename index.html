@@ -2,8 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>扫雷</title>
+    <meta name="viewport" />
+    <title>扫雷游戏</title>
 
     <style>
       * {
@@ -14,8 +14,23 @@
       body {
         margin: 0;
         min-height: 100vh;
-        background: linear-gradient(135deg, #dbeafe, #f5d0fe);
         font-family: "Microsoft YaHei", sans-serif;
+      }
+      .mine-mode {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #dbeafe, #60a5fa); /* 蓝色系 */
+        transition: background 0.4s ease;
+      }
+
+      .flag-mode {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #fce7f3, #f9a8d4); /* 粉色系 */
+        transition: background 0.4s ease;
+      }
+
+      .mine-mode,
+      .flag-mode {
+        transition: background 0.5s ease-in-out;
       }
 
       #app {
@@ -28,29 +43,25 @@
         display: grid;
         gap: 5px;
         margin: 20px auto;
+        cursor: pointer;
       }
 
       .panel {
-        width: 320px;
+        text-align: center;
+        width: 500px;
         padding: 22px;
         border-radius: 24px;
         background: rgba(255, 255, 255, 0.75);
         backdrop-filter: blur(14px);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
         border: 1px solid rgba(255, 255, 255, 0.4);
+        justify-items: center;
       }
 
       .tile {
         width: 50px;
         height: 50px;
         border-radius: 12px;
-
-        background: linear-gradient(
-          145deg,
-          rgb(196, 196, 255),
-          rgb(150, 150, 255)
-        );
-
         box-shadow:
           0 4px 10px rgba(0, 0, 0, 0.12),
           inset 0 2px 3px rgba(255, 255, 255, 0.5);
@@ -59,7 +70,6 @@
         line-height: 50px;
         font-size: 22px;
         font-weight: bold;
-        cursor: pointer;
 
         transition:
           transform 0.12s,
@@ -69,7 +79,6 @@
 
       .tile:hover {
         transform: scale(1.08);
-
         background: linear-gradient(
           145deg,
           rgb(139, 92, 246),
@@ -79,7 +88,6 @@
         box-shadow:
           0 6px 16px rgba(109, 58, 250, 0.4),
           inset 0 2px 3px rgba(255, 255, 255, 0.35);
-
         color: white;
       }
 
@@ -90,25 +98,7 @@
           rgb(240, 240, 240),
           rgb(220, 220, 220)
         );
-
         color: #333;
-
-        box-shadow:
-          inset 0 2px 6px rgba(0, 0, 0, 0.08),
-          0 2px 5px rgba(0, 0, 0, 0.06);
-      }
-
-      .tile-opened:hover {
-        transform: none;
-
-        background: linear-gradient(
-          145deg,
-          rgb(240, 240, 240),
-          rgb(220, 220, 220)
-        );
-
-        color: #333;
-
         box-shadow:
           inset 0 2px 6px rgba(0, 0, 0, 0.08),
           0 2px 5px rgba(0, 0, 0, 0.06);
@@ -134,24 +124,20 @@
         padding: 0 12px;
         font-size: 16px;
         background-color: #f3f4f6;
-
         box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08);
       }
 
-      .btn {
-        width: 120px;
+      button {
+        width: 200px;
         height: 48px;
         margin-right: 10px;
         border: none;
         border-radius: 14px;
-
         background: linear-gradient(135deg, #8b5cf6, #6366f1);
-
         color: white;
         font-size: 16px;
         font-weight: bold;
         cursor: pointer;
-
         transition:
           transform 0.15s,
           opacity 0.2s,
@@ -161,7 +147,6 @@
       .btn:hover {
         transform: translateY(-2px);
         opacity: 0.95;
-
         box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35);
       }
 
@@ -169,8 +154,17 @@
         transform: scale(0.96);
       }
 
+      .tile-tip {
+        background-color: red;
+      }
+
       [v-cloak] {
         display: none;
+      }
+
+      .mode-decor {
+        margin-top: 10px;
+        margin-bottom: 10px;
       }
     </style>
 
@@ -178,99 +172,119 @@
   </head>
 
   <body onselectstart="return false;" ondragstart="return false;">
-    <div id="app" v-cloak>
-      <div id="board-wrap">
-        <div v-for="(row,r) in bo" v-show="!isTip">
-          <div
-            v-for="(e,c) in row"
-            :class="['tile', e.opened ? 'tile-opened' : '']"
-            :style="e.style"
-            @click="hit(e)"
-            @contextmenu.prevent="flag(e)"
-          >
-            {{e.tag}}
+    <div id="app" v-cloak :class="isFlag?'flag-mode':'mine-mode'">
+      <div class="panel">
+        <div style="font-size: 2em">扫雷游戏</div>
+        <div v-show="stop">
+          <div style="color: red; font-size: 2em">
+            {{find==total-mines?'游戏胜利🎉':'游戏失败💥'}}
+          </div>
+          <div>共有{{mines}}颗地雷</div>
+          <div>共有{{total-mines}}块空地，已清理出{{find}}块</div>
+          <div>
+            <button @touchstart.prevent="start()" @click="start()">
+              新的一局
+            </button>
+          </div>
+          <div>
+            <span>边长</span>
+            <input type="number" id="size" value="5" />
+          </div>
+          <div>
+            <span>地雷总数</span>
+            <input type="number" id="mines" value="3" />
           </div>
         </div>
 
-        <div v-for="(row,r) in bo" v-show="isTip">
-          <div
-            v-for="(e,c) in row"
-            :class="['tile', e.opened ? 'tile-opened' : '']"
-            :style="e.style"
-            @click="hit(e)"
-          >
-            {{e.val}}
+        <div v-show="!stop">
+          <div style="color: green; font-size: 2em">游戏中🎮</div>
+          <div>共有{{mines}}颗地雷</div>
+          <div>共有{{total-mines}}块空地，已清理出{{find}}块</div>
+          <div>
+            <button @touchstart.prevent="stop='true'" @click="stop='true'">
+              放弃本局
+            </button>
+          </div>
+          <div>
+            <button
+              @touchstart.prevent="isTip = !isTip"
+              @click="isTip = !isTip"
+            >
+              当前模式：{{isTip?'作弊':'经典'}}
+            </button>
+          </div>
+          <div>
+            <button
+              @touchstart.prevent="isFlag = !isFlag"
+              @click="isFlag = !isFlag"
+            >
+              当前点击动作：{{isFlag ? '🚩 插旗' : '🔍 扫雷'}}
+            </button>
           </div>
         </div>
       </div>
-
-      <div class="panel">
-        <div>
-          <span>边长</span>
-          <input type="text" v-model="size" />
+      <div class="mode-decor">
+        <span v-for="i in 24">{{ isFlag ? '🚩' : '🔍' }}</span>
+      </div>
+      <div id="board-wrap" touchstart.prevent>
+        <div v-for="(row,r) in bo" touchstart.prevent>
+          <div
+            v-for="(e,c) in row"
+            :class="['tile', e.opened ? 'tile-opened' : '',isTip&&e.val=='💣' ? 'tile-tip' : '']"
+            :style="e.style"
+            @click="hit(e)"
+            @touchstart.prevent="hit(e)"
+          >
+            <span :style="{ color: getNumColor(e.tag) }"> {{e.tag}} </span>
+          </div>
         </div>
-
-        <div>
-          <span>地雷数目</span>
-          <input type="text" v-model="mines" />
-        </div>
-
-        <div>已扫出{{find}}块空地，还差{{total-find-mines}}块空地</div>
-
-        <div>
-          <button @click="isTip=!isTip" class="btn">提示</button>
-
-          <button @click="start()" class="btn">重来</button>
-        </div>
+      </div>
+      <div class="mode-decor">
+        <span v-for="i in 24">{{ isFlag ? '🚩' : '🔍' }}</span>
       </div>
     </div>
 
     <script>
       const EMPTY = "·";
+      const FLAG = "🚩";
+      const MINE = "💣";
 
       const getTile = function (r, c, v) {
         return {
           r,
           c,
-          val: v,
-          tag: "",
+          val: v, //炸弹，空白
+          tag: "", //数字，旗子，空白
           opened: false,
           style: "",
         };
       };
 
       function getBo(size, mines) {
+        // 生成棋盘
         let bo = [];
-
         for (let r = 0; r < size; r++) {
           let t = [];
-
           for (let c = 0; c < size; c++) {
             t[c] = getTile(r, c, EMPTY);
           }
-
           bo[r] = t;
         }
 
         let cnt = 0;
         let total = size * size;
-
         while (cnt < mines && cnt < total) {
           let i = Math.floor(Math.random() * size);
           let j = Math.floor(Math.random() * size);
-
-          if (bo[i][j].val != "💣") {
-            bo[i][j].val = "💣";
+          if (bo[i][j].val != MINE) {
+            bo[i][j].val = MINE;
             cnt += 1;
           }
         }
-
         return bo;
       }
-
       let app = new Vue({
         el: "#app",
-
         data: {
           dirs: [
             [-1, -1],
@@ -289,108 +303,107 @@
           find: 0,
           isTip: false,
           total: 0,
+          isFlag: false,
+          stop: false,
         },
 
         methods: {
+          getNumColor: (tag) => {
+            const map = {
+              1: "#22c55e", // 绿
+              2: "#4ade80", // 浅绿
+              3: "#22d3ee", // 青蓝
+              4: "#3b82f6", // 蓝
+              5: "#eab308", // 黄
+              6: "#f59e0b", // 深黄/橙
+              7: "#f97316", // 橙红
+              8: "#ef4444", // 红
+            };
+            return map[tag] || "#000";
+          },
           hit: function (e) {
+            if (this.stop) return;
             if (e.opened) return;
-
-            if (e.tag == "🚩") return;
-
-            e.opened = true;
-
-            if (e.val == "💣") {
-              e.val = "🔥";
-              e.tag = "🔥";
-
-              let t = confirm("碰到了地雷，游戏结束！");
-
-              if (t) this.start();
-
-              return;
-            }
-
-            if (e.val == EMPTY) {
-              let cnt = 0;
-
-              let r = e.r;
-              let c = e.c;
-
-              this.checkWin();
-
-              for (let k = 0; k < this.dirs.length; k++) {
-                let dir = this.dirs[k];
-
-                let tr = r + dir[0];
-                let tc = c + dir[1];
-
-                if (
-                  0 <= tr &&
-                  tr < this.bo.length &&
-                  0 <= tc &&
-                  tc < this.bo[0].length
-                ) {
-                  if (this.bo[tr][tc].val == "💣") {
-                    cnt += 1;
-                  }
-                }
-              }
-
-              if (cnt == 0) {
+            if (this.isFlag) {
+              if (e.tag == FLAG) {
                 e.tag = "";
-
+              } else {
+                e.tag = FLAG;
+              }
+            } else {
+              e.opened = true;
+              if (e.val == MINE) {
+                e.tag = "💥";
+                this.stop = true;
+                return;
+              }
+              if (e.val == EMPTY) {
+                let cnt = 0;
+                let r = e.r;
+                let c = e.c;
+                this.checkWin();
                 for (let k = 0; k < this.dirs.length; k++) {
                   let dir = this.dirs[k];
-
                   let tr = r + dir[0];
                   let tc = c + dir[1];
-
                   if (
                     0 <= tr &&
                     tr < this.bo.length &&
                     0 <= tc &&
                     tc < this.bo[0].length
                   ) {
-                    if (this.bo[tr][tc].val == EMPTY) {
-                      this.hit(this.bo[tr][tc]);
+                    if (this.bo[tr][tc].val == MINE) {
+                      cnt += 1;
                     }
                   }
                 }
-              } else {
-                e.tag = String(cnt);
+                if (cnt == 0) {
+                  e.tag = "";
+                  for (let k = 0; k < this.dirs.length; k++) {
+                    let dir = this.dirs[k];
+                    let tr = r + dir[0];
+                    let tc = c + dir[1];
+                    if (
+                      0 <= tr &&
+                      tr < this.bo.length &&
+                      0 <= tc &&
+                      tc < this.bo[0].length
+                    ) {
+                      if (this.bo[tr][tc].val == EMPTY) {
+                        this.hit(this.bo[tr][tc]);
+                      }
+                    }
+                  }
+                } else {
+                  e.tag = String(cnt);
+                }
               }
             }
           },
 
           start: function () {
+            this.stop = false;
+            this.isFlag = false;
+            this.isTip = false;
+            this.size = Math.max(
+              Number(document.querySelector("#size").value),
+              1,
+            );
+
             this.total = this.size * this.size;
-
-            this.bo = getBo(this.size, this.mines);
-
-            this.maxFind = this.size * this.size - this.mines;
-
+            this.mines = Math.min(
+              Number(document.querySelector("#mines").value),
+              this.total,
+            );
             this.find = 0;
-
-            const wrap = document.querySelector("#board-wrap");
-
-            wrap.style.gridTemplateColumns = "repeat(" + this.size + ", 50px)";
+            this.bo = getBo(this.size, this.mines);
+            document.querySelector("#board-wrap").style.gridTemplateColumns =
+              "repeat(" + this.size + ", 50px)";
           },
-
           checkWin: function () {
             this.find += 1;
-
-            if (this.find >= this.maxFind) {
-              let t = confirm("胜利！");
-
-              if (t) this.start();
-            }
-          },
-
-          flag: function (e) {
-            if (e.opened) return;
-
-            if (e.val == EMPTY || e.val == "💣") {
-              e.tag = e.tag ? "" : "🚩";
+            if (this.find >= this.total - this.mines) {
+              this.stop = true;
             }
           },
         },
