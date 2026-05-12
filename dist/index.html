@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>扫雷</title>
+    <title>扫雷游戏🎮</title>
 
     <style>
       * {
@@ -44,14 +44,6 @@
         width: 50px;
         height: 50px;
         border-radius: 12px;
-
-        /* background: linear-gradient(
-          145deg,
-          rgb(196, 196, 255),
-          rgb(150, 150, 255)
-        ); */
-        /* background-color: red; */
-
         box-shadow:
           0 4px 10px rgba(0, 0, 0, 0.12),
           inset 0 2px 3px rgba(255, 255, 255, 0.5);
@@ -60,7 +52,6 @@
         line-height: 50px;
         font-size: 22px;
         font-weight: bold;
-        cursor: pointer;
 
         transition:
           transform 0.12s,
@@ -70,7 +61,6 @@
 
       .tile:hover {
         transform: scale(1.08);
-
         background: linear-gradient(
           145deg,
           rgb(139, 92, 246),
@@ -80,7 +70,6 @@
         box-shadow:
           0 6px 16px rgba(109, 58, 250, 0.4),
           inset 0 2px 3px rgba(255, 255, 255, 0.35);
-
         color: white;
       }
 
@@ -91,9 +80,7 @@
           rgb(240, 240, 240),
           rgb(220, 220, 220)
         );
-
         color: #333;
-
         box-shadow:
           inset 0 2px 6px rgba(0, 0, 0, 0.08),
           0 2px 5px rgba(0, 0, 0, 0.06);
@@ -119,7 +106,6 @@
         padding: 0 12px;
         font-size: 16px;
         background-color: #f3f4f6;
-
         box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08);
       }
 
@@ -129,14 +115,11 @@
         margin-right: 10px;
         border: none;
         border-radius: 14px;
-
         background: linear-gradient(135deg, #8b5cf6, #6366f1);
-
         color: white;
         font-size: 16px;
         font-weight: bold;
         cursor: pointer;
-
         transition:
           transform 0.15s,
           opacity 0.2s,
@@ -146,7 +129,6 @@
       .btn:hover {
         transform: translateY(-2px);
         opacity: 0.95;
-
         box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35);
       }
 
@@ -168,7 +150,11 @@
 
   <body onselectstart="return false;" ondragstart="return false;">
     <div id="app" v-cloak>
-      <div id="board-wrap">
+      <div class="panel" style="font-size: 2em">扫雷游戏💣</div>
+      <div
+        id="board-wrap"
+        :style="isFlag?'cursor: crosshair':'cursor: pointer'"
+      >
         <div v-for="(row,r) in bo">
           <div
             v-for="(e,c) in row"
@@ -182,31 +168,43 @@
       </div>
 
       <div class="panel">
-        <div>
-          <span>边长</span>
-          <input type="number" v-model="size" />
+        <div v-show="stop">
+          <div style="color: red; font-size: 2em">
+            {{find==total-mines?'游戏胜利🎉':'游戏失败💥'}}
+          </div>
+          <div>共有{{mines}}颗地雷</div>
+          <div>共有{{total-mines}}块空地，已清理出{{find}}块</div>
+          <div>
+            <span>边长</span>
+            <input type="number" id="size" value="5" />
+          </div>
+          <div>
+            <span>地雷总数</span>
+            <input type="number" id="mines" value="3" />
+          </div>
+          <div>
+            <button @click="start()">重新开始</button>
+          </div>
         </div>
 
-        <div>
-          <span>地雷总数</span>
-          <input type="number" v-model="mines" />
-        </div>
+        <div v-show="!stop">
+          <div style="color: green; font-size: 2em">游戏中🎮</div>
+          <div>共有{{mines}}颗地雷</div>
+          <div>共有{{total-mines}}块空地，已清理出{{find}}块</div>
+          <div>
+            <button @click="isTip = !isTip">
+              当前模式：{{isTip?'作弊':'经典'}}
+            </button>
+          </div>
+          <div>
+            <button @click="isFlag = !isFlag">
+              当前点击动作：{{isFlag?'插旗':'扫雷'}}
+            </button>
+          </div>
 
-        <div>已扫出{{find}}块空地，还差{{total-find-mines}}块空地</div>
-
-        <div>
-          <button @click="isFlag = !isFlag">
-            插旗模式：{{isFlag?'开启':'关闭'}}
-          </button>
-        </div>
-        <div>
-          <button @click="isTip = !isTip">
-            提示模式：{{isTip?'开启':'关闭'}}
-          </button>
-        </div>
-
-        <div>
-          <button @click="start()">重来</button>
+          <div>
+            <button @click="stop='true'">新的一局</button>
+          </div>
         </div>
       </div>
     </div>
@@ -214,7 +212,7 @@
     <script>
       const EMPTY = "·";
       const FLAG = "🚩";
-      const BOOMB = "💣";
+      const MINE = "💣";
 
       const getTile = function (r, c, v) {
         return {
@@ -243,8 +241,8 @@
         while (cnt < mines && cnt < total) {
           let i = Math.floor(Math.random() * size);
           let j = Math.floor(Math.random() * size);
-          if (bo[i][j].val != BOOMB) {
-            bo[i][j].val = BOOMB;
+          if (bo[i][j].val != MINE) {
+            bo[i][j].val = MINE;
             cnt += 1;
           }
         }
@@ -287,11 +285,9 @@
               }
             } else {
               e.opened = true;
-              if (e.val == BOOMB) {
-                e.tag = "🔥";
+              if (e.val == MINE) {
+                e.tag = "💥";
                 this.stop = true;
-                let t = confirm("碰到了地雷，游戏结束！");
-                if (t) this.start();
                 return;
               }
               if (e.val == EMPTY) {
@@ -309,7 +305,7 @@
                     0 <= tc &&
                     tc < this.bo[0].length
                   ) {
-                    if (this.bo[tr][tc].val == BOOMB) {
+                    if (this.bo[tr][tc].val == MINE) {
                       cnt += 1;
                     }
                   }
@@ -342,19 +338,18 @@
             this.stop = false;
             this.isFlag = false;
             this.isTip = false;
+            this.size = Number(document.querySelector("#size").value);
+            this.mines = Number(document.querySelector("#mines").value);
             this.total = this.size * this.size;
-            this.bo = getBo(this.size, this.mines);
-            this.maxFind = this.size * this.size - this.mines;
             this.find = 0;
-            const wrap = document.querySelector("#board-wrap");
-            wrap.style.gridTemplateColumns = "repeat(" + this.size + ", 50px)";
+            this.bo = getBo(this.size, this.mines);
+            document.querySelector("#board-wrap").style.gridTemplateColumns =
+              "repeat(" + this.size + ", 50px)";
           },
-
           checkWin: function () {
             this.find += 1;
-            if (this.find >= this.maxFind) {
-              let t = confirm("胜利！");
-              if (t) this.start();
+            if (this.find >= this.total - this.mines) {
+              this.stop = true;
             }
           },
         },
